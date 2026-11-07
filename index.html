@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Silent Drink</title>
+<style>
+:root{--bg:#fff8ec;--card:#fff;--ink:#2b1d0e;--mute:#7a6a58;--acc:#e8960c;--acc2:#c2410c;--line:#ecdcc0;--bar:#f3d98b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1a1209;--card:#2a1d0f;--ink:#fbeed8;--mute:#b9a78e;--acc:#f5b13a;--acc2:#fb923c;--line:#443119;--bar:#8a5e12}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.45}
+main{max-width:520px;margin:0 auto;padding:18px 16px 40px}
+h1{font-size:26px;margin:6px 0 2px}h2{font-size:20px;margin:0 0 10px}
+.sub{color:var(--mute);font-size:14px;margin:0 0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0}
+input{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:16px}
+button{font:inherit;font-size:16px;border:0;border-radius:12px;padding:13px 16px;background:var(--acc);color:#2b1d0e;font-weight:700;cursor:pointer}
+button.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);font-weight:500}
+button.big{width:100%;padding:16px;font-size:18px}
+button:disabled{opacity:.4}
+.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}.row>button{flex:none}
+.chip{display:inline-flex;gap:6px;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:99px;padding:6px 12px;margin:4px 4px 0 0}
+.chip b{cursor:pointer;color:var(--acc2)}
+.who{font-size:34px;font-weight:800;text-align:center;color:var(--acc2);margin:8px 0}
+.q{font-size:21px;font-weight:700;text-align:center;margin:8px 0 14px}
+.opts{display:grid;gap:10px}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--bar);color:var(--ink)}
+.glass{display:flex;align-items:center;gap:10px;margin:8px 0;font-size:14px}
+.glass span.n{width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar{flex:1;height:16px;border-radius:8px;background:var(--bg);border:1px solid var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--bar),var(--acc));transition:width .4s}
+.step{display:flex;align-items:center;gap:10px;justify-content:space-between;margin:8px 0}
+.step .c{display:flex;align-items:center;gap:12px}.step .c button{padding:6px 14px}
+.small{font-size:13px;color:var(--mute)}
+.over{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:20px;z-index:9}
+.over .card{max-width:420px;text-align:center}
+.warn{font-size:13px;color:var(--mute);text-align:center;margin-top:20px}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+const WARM=[
+{q:"1 + 1 bằng mấy?",o:[["2",0],["3",1],["11",1]]},
+{q:"Bạn thích biển hay núi hơn?",o:[["Biển",0],["Núi",1]]},
+{q:"Cà phê hay trà sữa?",o:[["Cà phê",1],["Trà sữa",0]]},
+{q:"Bạn là người dậy sớm hay cú đêm?",o:[["Dậy sớm",0],["Cú đêm",1]]},
+{q:"7 x 8 bằng mấy?",o:[["54",1],["56",0],["58",1]]},
+{q:"Mèo hay chó?",o:[["Mèo",1],["Chó",0]]},
+{q:"Một tuần có mấy ngày?",o:[["7",0],["6",1],["8",1]]},
+{q:"Bạn thích ở nhà hay đi chơi?",o:[["Ở nhà",0],["Đi chơi",1]]}];
+const EASY=["Ai trong bàn này hay đến trễ nhất?","Ai ăn nhiều nhất bàn?","Ai có vẻ ngoài dễ gần nhất?","Ai hay kể chuyện cười nhạt nhất?","Ai nói nhiều nhất?","Ai ngủ nướng giỏi nhất?","Ai hay quên đồ nhất?","Ai tốn tiền mua đồ ăn vặt nhất?","Ai sẽ là người say đầu tiên đêm nay?","Ai chụp ảnh sống ảo nhiều nhất?"];
+const HARD=["Bạn nghĩ ai là người đào hoa nhất bàn này?","Ai có nhiều người yêu cũ nhất?","Ai là người dễ khóc nhất khi xem phim?","Ai hay nói dối nhất mà không ai biết?","Ai có khả năng bị bắt gặp làm chuyện xấu hổ nhất?","Ai sẽ cưới sớm nhất?","Ai giữ bí mật tệ nhất?","Ai hay thả thính nhất?","Ai khả năng cao nhất từng crush người trong bàn này?","Ai có thể sống sót tệ nhất nếu bị bỏ lại ở đảo hoang?"];
+const sh=a=>a.sort(()=>Math.random()-.5);
+const M=(q,a,b,c)=>({q,o:sh([[a,0],[b,1],[c,1]])}),P=(q,a,b)=>({q,o:sh([[a,0],[b,1]])});
+WARM.push(M("9 + 6 bằng mấy?","15","14","16"),M("12 x 3 bằng mấy?","36","34","38"),M("100 − 37 bằng mấy?","63","67","73"),M("5 x 5 bằng mấy?","25","20","30"),M("8 x 9 bằng mấy?","72","64","81"),M("11 x 11 bằng mấy?","121","111","131"),M("20 − 8 bằng mấy?","12","11","13"),M("3 x 14 bằng mấy?","42","44","46"),
+P("Phở hay bún?","Phở","Bún"),P("Mùa hè hay mùa đông?","Mùa hè","Mùa đông"),P("Xem phim rạp hay ở nhà?","Ở nhà","Rạp"),P("Nhắn tin hay gọi điện?","Nhắn tin","Gọi điện"),P("Ngọt hay mặn?","Ngọt","Mặn"),P("Du lịch bụi hay resort?","Resort","Du lịch bụi"),P("Lên kế hoạch kỹ hay tới đâu tính tới đó?","Lên kế hoạch","Tới đâu tính"),P("Nói thẳng hay nói vòng?","Nói vòng","Nói thẳng"),P("Pizza hay hamburger?","Pizza","Hamburger"),P("Mưa hay nắng?","Nắng","Mưa"),P("Có người yêu hay độc thân vui vẻ?","Có người yêu","Độc thân"),P("Quá khứ hay tương lai?","Tương lai","Quá khứ"));
+EASY.push("Ai là người giỏi nấu ăn nhất?","Ai hay cầm điện thoại nhất?","Ai có gu thời trang tốt nhất?","Ai hay lạc đường nhất?","Ai bừa bộn nhất?","Ai hát karaoke hay nhất?","Ai hát dở mà hăng nhất?","Ai tiết kiệm nhất?","Ai tiêu tiền hoang nhất?","Ai nhảy đẹp nhất?","Ai uống bia giỏi nhất?","Ai uống bia dở nhất?","Ai nghe lời mẹ nhất?","Ai ít nói nhất?","Ai hay mua đồ online nhất?","Ai sợ gián, côn trùng nhất?","Ai hay bị lừa nhất?","Ai thích rủ đi nhậu nhất?","Ai dễ làm quen người lạ nhất?","Ai xài mạng xã hội nhiều nhất?","Ai nấu ăn dở nhất?","Ai hay cày phim đêm nhất?","Ai lái xe ẩu nhất?","Ai dễ cảm động nhất?","Ai chơi game nhiều nhất?","Ai có nụ cười đẹp nhất?","Ai sẽ làm giám đốc sớm nhất?","Ai hay cãi lý nhất?","Ai thức khuya nhất?","Ai hay bỏ bữa nhất?","Ai hay lấy đồ ăn của người khác nhất?","Ai hay nói \"để mai tính\" nhất?","Ai dễ cáu khi đói nhất?","Ai trả lời tin nhắn chậm nhất?","Ai sợ ma nhất?","Ai sẽ là người cuối cùng còn tỉnh táo đêm nay?","Ai là linh hồn của cả nhóm?","Ai hay hứa suông nhất?","Ai sẽ đòi uống thêm ly nữa?","Ai là trùm cuối của bàn nhậu?");
+HARD.push("Ai sẽ ly hôn đầu tiên?","Ai từng nhắn nhầm tin cho người không nên nhắn?","Ai sẽ là người hôn nhầm người lúc say?","Ai là người hai mặt nhất?","Ai từng làm chuyện điên rồ nhất vì tình?","Ai dễ yêu nhanh chia tay nhanh nhất?","Ai hay stalk người yêu cũ nhất?","Ai dễ bị friendzone nhất?","Ai hay ghen nhất khi có người yêu?","Ai từng nói dối bố mẹ nhiều nhất?","Ai từng say đến mức không nhớ gì?","Ai từng bị từ chối khi tỏ tình?","Ai từng ghost người khác?","Ai thả thính giỏi trên mạng nhưng ngoài đời nhút nhát?","Ai từng lén xem điện thoại người yêu?","Ai khi say hay gọi cho người cũ?","Ai từng yêu đơn phương lâu nhất?","Ai đào hoa nhưng ít người biết?","Ai từng nói xấu bạn bè sau lưng?","Ai hay nói \"mình ổn\" nhưng thật ra không ổn?","Ai từng hẹn hò mà cả nhóm không ai biết?","Ai vẫn còn giữ đồ của người yêu cũ?","Ai từng đăng ảnh để làm người cũ ghen?","Ai từng quay lại với người yêu cũ?","Ai làm mối dở nhất?","Ai khi say hay thổ lộ tình cảm?","Ai khi say hay khóc?","Ai khi say hay ôm người bên cạnh?","Ai từng nôn vì uống quá chén?","Ai từng làm bạn thân giận vì lỡ lời?","Ai sẽ khiến cả bàn bất ngờ nhất nếu kể chuyện tình?","Chuyện tình của ai trong bàn đáng làm phim nhất?","Ai từng thích người trong nhóm này mà không dám nói?","Ai từng hẹn hò chỉ vì không muốn cô đơn?","Ai sẽ là người cầu hôn vụng về nhất?","Ai từng bị gọi nhầm tên người yêu cũ?","Ai từng bị chia tay qua tin nhắn?","Ai từng khóc trước mặt crush?","Ai kín như bưng chuyện tình cảm?","Ai sẽ cuồng người yêu nhất?");
+const XHARD=["Ai trong bàn bạn thấy giả tạo nhất?","Ai trong bàn bạn ít tin tưởng nhất?","Nếu phải cắt liên lạc với một người trong bàn, bạn chọn ai?","Ai trong bàn bạn sẽ không mời đến đám cưới của mình?","Ai trong bàn bạn từng thầm ghen tị nhất?","Ai trong bàn bạn từng nghĩ xấu mà chưa dám nói?","Ai trong bàn bạn sẽ không bao giờ hẹn hò, dù là người cuối cùng trên đời?","Ai trong bàn bạn muốn hẹn hò thử một tuần nhất?","Ai trong bàn bạn đoán hôn giỏi nhất?","Ai trong bàn bạn từng có cảm giác rung động?","Ai trong bàn bạn nghĩ đang giấu chuyện lớn nhất?","Ai trong bàn khiến bạn thất vọng nhất?","Ai trong bàn bạn thấy ích kỷ nhất?","Ai trong bàn bạn nghĩ có khả năng phản bội niềm tin nhất?","Ai trong bàn bạn sẽ nhờ giữ bí mật lớn nhất của mình?","Ai trong bàn bạn sẽ không dám nhờ giúp lúc khó khăn?","Ai trong bàn rời nhóm sẽ khiến bạn tiếc nhất?","Ai trong bàn bạn từng thấy ghét ở một thời điểm nào đó?","Ai trong bàn có thể là người yêu lý tưởng của bạn?","Ai trong bàn bạn tò mò muốn xem điện thoại nhất?","Ai trong bàn nói dối giỏi nhất?","Nếu chỉ cứu được một người trong bàn, bạn cứu ai?","Ai trong bàn bạn sẽ không cho vay tiền?","Ai trong bàn bạn nghĩ từng nói xấu bạn sau lưng?","Ai trong bàn bạn từng muốn xin lỗi mà chưa dám?","Nếu buộc phải kết hôn 1 tháng với một người trong bàn, bạn chọn ai?","Ai trong bàn bạn thấy cô đơn nhất mà ít người nhận ra?","Ai trong bàn bạn khó tha thứ nhất nếu bị họ phản bội?","Ai trong bàn bạn nghĩ có khả năng ngoại tình nhất?","Ai trong bàn từng đối xử với bạn không công bằng?","Chuyện tình cảm của ai trong bàn bạn tò mò nhất?","Ai trong bàn bạn nghĩ đang mệt mỏi mà không nói ra?","Nếu cả bàn chơi game sinh tồn, bạn bỏ phiếu loại ai đầu tiên?","Ai trong bàn sẽ giàu nhất sau 10 năm, và ai sẽ nghèo nhất?","Ai trong bàn bạn thấy đạo đức giả nhất?","Ai trong bàn bạn nghĩ nói xấu người khác nhiều nhất?","Ai trong bàn bạn nghĩ đã chọn sai người yêu?","Ai trong bàn bạn nghĩ nên chia tay người yêu hiện tại?","Ai trong bàn bạn muốn bắt gọi cho người yêu cũ nhất?","Ai trong bàn bạn nghĩ có lịch sử tìm kiếm đáng xấu hổ nhất?","Hai người nào trong bàn bạn nghĩ hợp nhau thành một cặp? (chia bia cho cả hai)","Hai người nào trong bàn bạn nghĩ sẽ cãi nhau nhiều nhất nếu yêu nhau?","Ai trong bàn bạn nghĩ hôn dở nhất?","Ai trong bàn bạn nghĩ là người yêu hay ghen nhất?","Ai trong bàn bạn nghĩ đang thích thầm một người ở đây?","Ai trong bàn bạn nghĩ hiểu bạn nhất?","Ai trong bàn bạn nghĩ sẽ quên bạn đầu tiên khi thành công?","Ai trong bàn bạn nghĩ sẽ bảo vệ bạn khi bị bắt nạt?","Ai trong bàn bạn nghĩ cần được ôm nhất lúc này?"];
+let streak=0;
+const $=document.getElementById("app");
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+let S={names:[],cap:3,players:[],cur:-1,warm:null,q:null,lvl:0,pour:[],queue:[]};
+let draft=[];
+
+function setup(){
+$.innerHTML=`<h1>🍺 Silent Drink</h1><p class="sub">Mỗi người 1 cốc nhỏ 220ml + 1 ly lớn. Nhập tên người chơi để bắt đầu.</p>
+<div class="card"><div class="row"><input id="nm" placeholder="Tên người chơi" maxlength="14"><button id="add">Thêm</button></div>
+<div id="chips"></div></div>
+<button class="big" id="go">Bắt đầu chơi</button>
+<p class="warn">Uống có trách nhiệm, không lái xe sau khi uống. Ai không uống được thì dùng nước ngọt nhé.</p>`;
+const chips=()=>{document.getElementById("chips").innerHTML=draft.map((n,i)=>`<span class="chip">${esc(n)} <b data-i="${i}">✕</b></span>`).join("")||'<span class="small">Cần ít nhất 2 người.</span>';
+document.querySelectorAll(".chip b").forEach(b=>b.onclick=()=>{draft.splice(+b.dataset.i,1);chips();go.disabled=draft.length<2})};
+const add=()=>{const v=nm.value.trim();if(v&&!draft.includes(v)){draft.push(v);nm.value="";chips();go.disabled=draft.length<2}nm.focus()};
+document.getElementById("add").onclick=add;nm.onkeydown=e=>{if(e.key==="Enter")add()};
+const go=document.getElementById("go");go.disabled=draft.length<2;chips();
+go.onclick=()=>{S.players=draft.map(n=>({n,v:0,last:null}));S.cur=-1;streak=0;turn()};
+}
+
+function board(){return `<div class="card"><h2 style="font-size:16px">Ly lớn của mọi người</h2>${S.players.map(p=>`<div class="glass"><span class="n">${esc(p.n)}</span><div class="bar"><i style="width:${Math.min(100,p.v/(S.cap*4)*100)}%"></i></div><span class="small">${(p.v/4).toFixed(2).replace(/\.?0+$/,"")}/${S.cap}</span></div>`).join("")}</div>`}
+
+function turn(){
+$.innerHTML=`<h1>🎲 Lượt mới</h1><p class="sub">Bấm quay để chọn người trả lời.</p><div class="card"><div class="who" id="who">?</div><button class="big" id="spin">Quay tên</button></div>${board()}<button class="ghost" id="quit">Về màn hình đầu</button>`;
+quit.onclick=setup;
+spin.onclick=()=>{spin.disabled=true;let t=0,total=22,last=S.cur;
+const step=()=>{const i=Math.floor(Math.random()*S.players.length);who.textContent=S.players[i].n;t++;
+if(t<total)setTimeout(step,40+t*9);else{let f=i;if(S.players.length>2&&f===last)f=(f+1)%S.players.length;S.cur=f;who.textContent=S.players[f].n;setTimeout(warm,700)}};step()};
+}
+
+function warm(){
+S.warm=pick(WARM);
+$.innerHTML=`<span class="tag">Câu khởi động</span><div class="who">${esc(S.players[S.cur].n)}</div><div class="card"><div class="q">${esc(S.warm.q)}</div><div class="opts">${S.warm.o.map((o,i)=>`<button data-i="${i}">${esc(o[0])}</button>`).join("")}</div></div>`;
+document.querySelectorAll(".opts button").forEach(b=>b.onclick=()=>{S.lvl=S.warm.o[+b.dataset.i][1];streak=S.lvl?streak+1:0;if(streak>=2||S.players[S.cur].v>=S.cap*3){S.lvl=2;streak=0}question()});
+}
+
+function question(){
+S.q=pick([EASY,HARD,XHARD][S.lvl]);
+$.innerHTML=`<span class="tag">${["Câu dễ 🙂","Câu KHÓ 🔥","CỰC KHÓ 💀"][S.lvl]}</span><div class="who">${esc(S.players[S.cur].n)}</div>
+<div class="card"><div class="q">${esc(S.q)}</div>
+<p class="small" style="text-align:center">Dùng cốc nhỏ đầy bia, rót vào ly lớn của người bạn chọn. Rót nhiều hay ít là câu trả lời. Không được rót cho chính mình.</p>
+<div class="opts"><button id="ok">Rót xong, lượt kế tiếp</button><button class="ghost" id="no">Không trả lời được</button></div></div>${board()}`;
+ok.onclick=pourUI;no.onclick=penalty;
+}
+
+function penalty(){
+$.innerHTML=`<div class="card"><h2>Chịu phạt!</h2><p class="q">${esc(S.players[S.cur].n)} uống hết cốc nhỏ, rồi kể 1 fact về bản thân mà chưa ai biết.</p><button class="big" id="nx">Xong, lượt kế tiếp</button></div>${board()}`;nx.onclick=turn;
+}
+
+function pourUI(){
+S.pour=S.players.map(()=>0);
+const draw=()=>{const used=S.pour.reduce((a,b)=>a+b,0);
+$.innerHTML=`<h1>Rót cho ai?</h1><p class="sub">Cốc nhỏ có 4 phần (mỗi phần 1/4 cốc). Phải chia hết ${4} phần. Còn lại: <b>${4-used}</b></p><div class="card">${S.players.map((p,i)=>i===S.cur?"":`<div class="step"><span>${esc(p.n)}</span><div class="c"><button class="ghost" data-d="-1" data-i="${i}">−</button><b>${S.pour[i]}</b><button class="ghost" data-d="1" data-i="${i}">+</button></div></div>`).join("")}</div><button class="big" id="cf" ${used===4?"":"disabled"}>Xác nhận</button>`;
+document.querySelectorAll(".step button").forEach(b=>b.onclick=()=>{const i=+b.dataset.i,d=+b.dataset.d,u=S.pour.reduce((a,c)=>a+c,0);
+if(d>0&&u>=4)return;if(d<0&&S.pour[i]<=0)return;S.pour[i]+=d;draw()});
+cf.onclick=apply};draw();
+}
+
+function apply(){
+const cap=S.cap*4;S.queue=[];
+S.players.forEach((p,i)=>{if(S.pour[i]>0){p.v+=S.pour[i];p.last=S.cur;if(p.v>=cap)S.queue.push(i)}});
+next();
+}
+function next(){
+if(!S.queue.length)return turn();
+const i=S.queue.shift(),p=S.players[i],by=S.players[p.last].n;
+$.innerHTML=`<div class="over"><div class="card"><h2>🍻 Đầy ly rồi!</h2><p class="q">${esc(p.n)} phải uống cạn ly lớn.</p><p>Sau đó ${esc(p.n)} chọn <b>Thật</b> hay <b>Thách</b>, và <b>${esc(by)}</b> (người rót cuối cùng) sẽ tự nghĩ ra câu hỏi hoặc thử thách.</p><button class="big" id="dn">Đã uống và làm xong</button></div></div>`;
+dn.onclick=()=>{p.v=0;p.last=null;next()};
+}
+function board(){return `<div class="card"><h2 style="font-size:16px">Ly lớn của mọi người</h2><p class="small">Ly ai đầy thì bấm nút bên cạnh tên.</p>${S.players.map((p,i)=>`<div class="step"><span>${esc(p.n)}</span><button class="ghost" data-full="${i}">🍻 Ly đầy</button></div>`).join("")}</div>`}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-full]");if(b)full(+b.dataset.full)});
+function full(i){const p=S.players[i];if(document.getElementById("ov"))return;const d=document.createElement("div");d.id="ov";d.className="over";d.innerHTML=`<div class="card"><h2>🍻 Đầy ly rồi!</h2><p class="q">${esc(p.n)} phải uống cạn ly lớn.</p><p>Sau đó ${esc(p.n)} chọn <b>Thật</b> hoặc <b>Thách</b>, và <b>người rót vào ly này cuối cùng</b> tự nghĩ ra câu hỏi hoặc thử thách.</p><button class="big" id="dn">Đã uống và làm xong</button></div>`;document.body.appendChild(d);d.querySelector("#dn").onclick=()=>d.remove()}
+function pourUI(){turn()}
+setup();
+</script>
+</body>
+</html>
